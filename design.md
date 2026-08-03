@@ -1,6 +1,6 @@
 # design.md — Design System
 
-> Direction locked from a reference (a "Boomerang" fintech landing page). That reference is a **web marketing page** with video hero + boomerang animation — this app is a **data-dense mobile utility app** used daily by admins/teachers/students. So we're porting the *design language* (palette, type pairing, restraint, motion rules, row-interaction pattern) — not the literal video-hero layout, which doesn't fit a role-based mobile app.
+> Direction locked from a reference (a "Boomerang" fintech landing page). That reference is a **web marketing page** with video hero + boomerang animation — this app is a **data-dense web utility app** used daily by admins/teachers/students. So we're porting the *design language* (palette, type pairing, restraint, motion rules, row-interaction pattern) — not the literal video-hero layout, which doesn't fit a role-based web app.
 
 ## 1. Design Direction
 Same principle as the reference: **quiet, confident, monochrome-first UI with one accent used sparingly.** No purple, no gradients, no decorative cards, no busy dashboards. Every screen = clear hierarchy + generous whitespace + one primary action.
@@ -98,4 +98,4 @@ Applied to Home/Dashboard screens for each role:
 
 ---
 ### Rationale note
-The original reference is a single-page marketing site (video hero, no forms/tables/lists of real data). This app is the opposite: multi-screen, data-heavy, role-gated. What carried over: the **restrained monochrome palette + single accent discipline, serif/sans pairing, hairline-divider structure, uppercase micro-labels, and the row-hover interaction pattern.** What didn't: the video hero, boomerang canvas animation, and single-viewport layout — none of which fit a mobile attendance app.
+The original reference is a single-page marketing site (video hero, no forms/tables/lists of real data). This app is the opposite: multi-screen, data-heavy, role-gated. What carried over: the **restrained monochrome palette + single accent discipline, serif/sans pairing, hairline-divider structure, uppercase micro-labels, and the row-hover interaction pattern.** What didn't: the video hero, boomerang canvas animation, and single-viewport layout — none of which fit a web attendance app.

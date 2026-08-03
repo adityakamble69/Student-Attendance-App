@@ -4,7 +4,7 @@
 
 ## Phase 0 — Project Setup
 - Initialize `backend/` (Express, DB connection, env config, folder structure).
-- Initialize `mobile/` (React Native + TypeScript, navigation skeleton).
+- Initialize `web/` (SvelteKit + TypeScript, routing skeleton).
 - Set up database (`attendance.sql`) with all base tables.
 - Set up Railway/Render project + connect DB.
 - Set up Cloudinary + FCM project credentials (config only, not wired to features yet).
@@ -12,7 +12,7 @@
 ## Phase 1 — Authentication & Roles
 - JWT auth (login/register/refresh) for Admin, Teacher, Student.
 - Role middleware on backend.
-- Auth screens + role-based navigation stacks on mobile.
+- Auth screens + role-based route guards on web.
 - Secure token storage on device (e.g. encrypted storage, not plain AsyncStorage for tokens).
 
 ## Phase 2 — Admin Core (Master Data)
@@ -63,7 +63,7 @@
 - Apply full design system (`design.md`) across all screens.
 - Edge case & security testing (see `rules.md` §6).
 - Performance pass (list rendering, pagination, image loading).
-- Deploy backend to Railway/Render; prepare mobile build (Android first, then iOS if needed).
+- Deploy backend to Railway/Render; deploy web app (Vercel/Netlify/Render static or Node adapter).
 
 ---
 

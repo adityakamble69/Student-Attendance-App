@@ -16,7 +16,7 @@
 - ❌ Never store plaintext passwords — bcrypt only.
 - ❌ Never log full JWTs, passwords, or OTP codes to console/files in production.
 
-### Mobile (React Native + TypeScript)
+### Web (SvelteKit + TypeScript)
 - ✅ Strict TypeScript — no implicit `any`.
 - ✅ Screens stay thin; business/API logic lives in `services/` and `hooks/`.
 - ✅ Use one shared `api.ts` axios instance with interceptors for token refresh/401 handling.
@@ -33,7 +33,7 @@
 
 ## 4. Git & Workflow
 - Branch per phase/feature: `phase-1-auth`, `feature-qr-attendance`, etc.
-- Commit messages: `[backend] add attendance controller` / `[mobile] build QR scanner screen`.
+- Commit messages: `[backend] add attendance controller` / `[web] build QR scanner screen`.
 - No direct commits to `main` once Phase 1 is done — use PRs even if solo, for a clean history.
 
 ## 5. What to Avoid
@@ -45,4 +45,4 @@
 
 ## 6. Testing Expectations
 - Backend: at minimum, test attendance-marking edge cases (duplicate marking, expired OTP, out-of-geofence, unauthorized role).
-- Mobile: manually verify each role's navigation stack doesn't leak into another role's screens.
+- Web: manually verify each role's route guard in +layout.svelte doesn't leak into another role's routes.

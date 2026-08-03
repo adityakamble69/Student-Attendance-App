@@ -2,7 +2,7 @@
 ## Project Requirement Document
 
 ## 1. Overview
-The Student Attendance App is a mobile-first digital attendance system for colleges, schools, and coaching institutes. It replaces paper registers with a role-based app for **Admins**, **Teachers**, and **Students**, supporting manual as well as smart attendance methods (QR, GPS, Bluetooth/Wi-Fi, OTP).
+The Student Attendance App is a web-first digital attendance system for colleges, schools, and coaching institutes. It replaces paper registers with a role-based app for **Admins**, **Teachers**, and **Students**, supporting manual as well as smart attendance methods (QR, GPS, Bluetooth/Wi-Fi, OTP).
 
 ## 2. Goals
 - Eliminate manual/paper attendance registers.
@@ -78,7 +78,7 @@ Students, Teachers, Subjects, Classes, Attendance, LeaveRequests
 - Payment/fees module
 - Parent login portal
 - Biometric (fingerprint/face) attendance
-- Web admin panel (v1 is mobile-app + backend only; admin can use mobile too)
+- Native mobile app (v1 is web-app + backend only; admin can use the web app too)
 
 ## 9. Success Metrics
 - % reduction in proxy attendance incidents

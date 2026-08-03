@@ -3,14 +3,14 @@
 ## 1. System Architecture (High Level)
 
 ```
-[React Native App] <--REST/JWT--> [Node.js + Express API] <---> [PostgreSQL/MySQL]
+[Svelte (SvelteKit) Web App] <--REST/JWT--> [Node.js + Express API] <---> [PostgreSQL/MySQL]
                                           |
                                           |--> Cloudinary (profile photos)
                                           |--> Firebase Cloud Messaging (push notifications)
                                           |--> Report generation (PDF/Excel)
 ```
 
-- **Client:** React Native (TypeScript), role-based navigation (Admin / Teacher / Student stacks).
+- **Client:** SvelteKit (TypeScript), role-based routing via file-based routes (`/login`, `/admin`, `/teacher`, `/student`) guarded in the root layout.
 - **Server:** Node.js + Express, layered as routes → controllers → services (implicit) → models.
 - **Auth:** JWT access token (+ refresh token), role embedded in token payload, middleware guards per route.
 - **DB:** MySQL — relational, since attendance data is highly relational (student ↔ class ↔ subject ↔ date).
@@ -56,19 +56,22 @@
 
 ```
 StudentAttendanceApp/
-├── mobile/
-│   ├── screens/
-│   │   ├── admin/
-│   │   ├── teacher/
-│   │   ├── student/
-│   │   └── auth/
-│   ├── components/          # shared UI: Button, Card, AttendanceRow, QRScanner, etc.
-│   ├── navigation/          # RootNavigator, AdminStack, TeacherStack, StudentStack
-│   ├── services/            # api.ts (axios instance), auth.ts, attendance.ts, storage.ts
-│   ├── context/             # AuthContext, ThemeContext
-│   ├── hooks/                # useAttendance, useAuth, useGeolocation
-│   ├── utils/                 # formatDate, calculatePercentage, validators
-│   └── assets/                # fonts, icons, images
+├── web/
+│   ├── src/
+│   │   ├── routes/
+│   │   │   ├── admin/            # +page.svelte
+│   │   │   ├── teacher/          # +page.svelte
+│   │   │   ├── student/          # +page.svelte
+│   │   │   ├── login/            # +page.svelte
+│   │   │   └── +layout.svelte    # role-based route guard (was RootNavigator)
+│   │   ├── lib/
+│   │   │   ├── components/       # shared UI: Button, Card, AttendanceRow, QRScanner, etc.
+│   │   │   ├── services/         # api.ts (axios instance), auth.ts, attendance.ts, storage.ts
+│   │   │   ├── stores/           # auth.ts, theme.ts (Svelte stores; were AuthContext, ThemeContext)
+│   │   │   ├── hooks/            # useAttendance, useGeolocation
+│   │   │   └── utils/            # formatDate, calculatePercentage, validators, theme
+│   │   └── app.html
+│   └── static/                   # fonts, icons, images
 │
 ├── backend/
 │   ├── routes/               # authRoutes.js, studentRoutes.js, teacherRoutes.js, attendanceRoutes.js...
@@ -124,11 +127,11 @@ status ENUM(Pending, Approved, Rejected), reviewed_by INT FK NULL, created_at TI
 ## 6. Tech Stack Summary
 | Layer | Choice |
 |---|---|
-| Mobile | React Native (TypeScript) |
+| Web | SvelteKit (TypeScript) |
 | Backend | Node.js + Express |
 | Auth | JWT (access + refresh) |
 | Database | PostgreSQL or MySQL |
 | Hosting | Railway / Render |
 | Storage | Cloudinary |
-| Notifications | Firebase Cloud Messaging |
-| Charts | Chart.js / React Native chart libs |
+| Notifications | Firebase Cloud Messaging (or Web Push) |
+| Charts | Chart.js |
