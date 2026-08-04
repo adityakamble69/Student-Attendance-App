@@ -3,9 +3,9 @@
 > Update this file every time a task, file, or phase is completed. This is the single source of truth for "what's done" and "what's in progress" across sessions.
 
 ## Current Status
-- **Current Phase:** Phase 0 — Project Setup (backend done + verified, web skeleton done)
-- **Currently Working On:** nothing — Phase 0 complete, ready for Phase 1 (Auth & Roles)
-- **Last Updated:** 2026-08-03
+- **Current Phase:** Phase 1 — Authentication & Roles — **COMPLETE**
+- **Currently Working On:** nothing — ready to start Phase 2 (Admin Core / Master Data)
+- **Last Updated:** 2026-08-04
 
 ## Completed
 - [x] PRD.md, architecture.md, rules.md, phases.md, design.md, memory.md (planning docs)
@@ -30,33 +30,32 @@
       as an open question below), hooks (useAttendance, useGeolocation — now plain async
       functions instead of React hooks), utils (formatDate, calculatePercentage, validators).
       See web/README.md for the old-file → new-file map.
+- [x] Phase 1 — Authentication & Roles (backend + web), verified end-to-end on the
+      user's local machine: register/login/refresh/logout API (`models/userModel.js`,
+      `validators/authValidators.js`, `utils/tokenUtils.js`, `controllers/authController.js`,
+      `routes/authRoutes.js` — login takes `role` up front rather than searching all 3
+      role tables), real Login screen (`routes/login/+page.svelte` — role pills +
+      email/password form per design.md), `lib/services/auth.ts` + `lib/stores/auth.ts`
+      (session persisted to `localStorage`, rehydrated via `init()` on app load, axios
+      wired via `configureApiAuth` so every request carries the token and a 401 logs
+      the user out), `+layout.svelte` awaits session rehydration before redirecting.
+      Token storage: kept `localStorage` for the MVP (flagged XSS-risk tradeoff in
+      Known Issues, revisit later). Confirmed working: register + login via
+      Invoke-RestMethod, Login screen renders, login redirects to role dashboard.
 
 ## In Progress
-- _(none — Phase 0 closed out)_
+- _(none — Phase 1 closed out)_
 
-## Up Next (Phase 1 — Authentication & Roles)
-- [x] Backend: register/login/refresh controllers + bcrypt hashing + JWT issuing —
-      `models/userModel.js`, `validators/authValidators.js`, `utils/tokenUtils.js`,
-      `controllers/authController.js`, `routes/authRoutes.js`. Login takes `role` up
-      front (client picks Admin/Teacher/Student) rather than searching all 3 role
-      tables — cheaper query, and avoids leaking whether an email exists under a
-      different role.
-- [x] Backend: wire authMiddleware + roleMiddleware into protected routes —
-      `/auth/logout` now requires a valid access token via `authMiddleware`
-      (middleware already existed from Phase 0, just needed a route to protect).
-- [x] Web: real LoginScreen UI (per design.md components), wire to lib/services/auth.ts —
-      `routes/login/+page.svelte` (role pills + email/password form, design.md tokens
-      inlined as scoped CSS), `lib/services/auth.ts` (role-aware login/register/refresh/
-      logout calls matching the backend), `lib/stores/auth.ts` (persists session to
-      storage on login, rehydrates via `init()` on app load, wires `configureApiAuth`
-      so every request carries the access token and a 401 logs the user out).
-      `+layout.svelte` now awaits `authUser.init()` before deciding redirects, so a page
-      refresh doesn't bounce a logged-in user back to `/login`.
-- [x] Web: decide on token storage strategy — kept `localStorage` for the Phase 1 MVP
-      (see `lib/services/storage.ts` — flagged as an XSS-risk tradeoff, revisit if the
-      app ever needs stronger session security; httpOnly cookies would need backend
-      changes too, so deferred rather than blocking Phase 1).
-- [ ] Web: `npm install && npm run dev` to confirm the Phase 0 routing shell boots
+## Up Next (Phase 2 — Admin Core / Master Data)
+- [ ] Backend: Teacher CRUD (add/edit/delete) — controller + model + routes, admin-only
+- [ ] Backend: Student CRUD (add/edit/delete) — controller + model + routes, admin-only
+- [ ] Backend: Classes & Divisions CRUD, Subjects CRUD
+- [ ] Backend: assign teachers to subjects (join table already exists as `classes` —
+      confirm `database/attendance.sql` covers this or needs a new table)
+- [ ] Web: Admin dashboard — replace placeholder with basic counts (teachers/students/
+      classes) per design.md's Home screen pattern (serif hero stat + summary rows)
+- [ ] Web: Teacher/Student/Class/Subject management screens (list + add/edit forms),
+      using the design.md Interactive Row pattern for lists
 
 ## Decisions Log
 | Date | Decision | Reason |
