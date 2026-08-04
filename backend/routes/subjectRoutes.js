@@ -1,13 +1,21 @@
 // routes/subjectRoutes.js
-// Placeholder — endpoints implemented in the phase that owns this domain
-// (see phases.md). Wired into server.js now so the route tree is real
-// from Phase 0, even before handlers exist.
+// GET /, GET /:id, POST /, PUT /:id, DELETE /:id — all admin-only for Phase 2.
 
 const express = require('express');
 const router = express.Router();
 
-router.get('/ping', (req, res) => {
-  res.json({ success: true, data: 'subjectRoutes alive — handlers added in a later phase' });
-});
+const subjectController = require('../controllers/subjectController');
+const authMiddleware = require('../middleware/authMiddleware');
+const roleMiddleware = require('../middleware/roleMiddleware');
+const validate = require('../middleware/validate');
+const { createSubjectSchema, updateSubjectSchema } = require('../validators/subjectValidators');
+
+router.use(authMiddleware, roleMiddleware(['admin']));
+
+router.get('/', subjectController.list);
+router.get('/:id', subjectController.getOne);
+router.post('/', validate(createSubjectSchema), subjectController.create);
+router.put('/:id', validate(updateSubjectSchema), subjectController.update);
+router.delete('/:id', subjectController.remove);
 
 module.exports = router;

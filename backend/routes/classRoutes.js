@@ -1,13 +1,23 @@
 // routes/classRoutes.js
-// Placeholder — endpoints implemented in the phase that owns this domain
-// (see phases.md). Wired into server.js now so the route tree is real
-// from Phase 0, even before handlers exist.
+// GET /, GET /:id, POST /, PUT /:id, DELETE /:id — all admin-only for Phase 2.
+// POST / and PUT /:id are also how a teacher gets assigned to a subject
+// (see models/classModel.js header for why there's no separate join table).
 
 const express = require('express');
 const router = express.Router();
 
-router.get('/ping', (req, res) => {
-  res.json({ success: true, data: 'classRoutes alive — handlers added in a later phase' });
-});
+const classController = require('../controllers/classController');
+const authMiddleware = require('../middleware/authMiddleware');
+const roleMiddleware = require('../middleware/roleMiddleware');
+const validate = require('../middleware/validate');
+const { createClassSchema, updateClassSchema } = require('../validators/classValidators');
+
+router.use(authMiddleware, roleMiddleware(['admin']));
+
+router.get('/', classController.list);
+router.get('/:id', classController.getOne);
+router.post('/', validate(createClassSchema), classController.create);
+router.put('/:id', validate(updateClassSchema), classController.update);
+router.delete('/:id', classController.remove);
 
 module.exports = router;
