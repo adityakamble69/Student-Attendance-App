@@ -3,8 +3,9 @@
   Replaces the old App.tsx (ThemeProvider > AuthProvider > RootNavigator).
   SvelteKit's file-based routing replaces AuthStack/AdminStack/TeacherStack/
   StudentStack — see routes/login, routes/admin, routes/teacher, routes/student.
-  This layout just guards routes based on the auth store, the same job
-  RootNavigator used to do by picking which stack to render.
+  This layout guards routes based on the auth store, the same job
+  RootNavigator used to do by picking which stack to render. It also
+  rehydrates the session from storage on first load via authUser.init().
 -->
 <script lang="ts">
   import { onMount } from 'svelte';
@@ -20,7 +21,8 @@
     student: '/student'
   };
 
-  onMount(() => {
+  onMount(async () => {
+    await authUser.init();
     ready = true;
   });
 
@@ -34,4 +36,6 @@
   }
 </script>
 
-<slot />
+{#if ready}
+  <slot />
+{/if}

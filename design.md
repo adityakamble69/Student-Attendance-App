@@ -81,7 +81,7 @@ Only these motions are allowed anywhere in the app:
 No parallax, no looping background animation, no confetti/celebratory motion, no skeleton shimmer beyond a simple pulse. The reference's boomerang-video motion doesn't translate here — a utility app should feel instantly responsive, not cinematic.
 
 ## 7. Iconography
-- Single icon set throughout — Lucide icons (via `lucide-react-native`), matching the reference's icon choice (`ArrowRight` used for row affordance).
+- Single icon set throughout — Lucide icons (via `lucide-svelte`), matching the reference's icon choice (`ArrowRight` used for row affordance).
 - Keep icons functional and outline-style, 16–20px in lists, 24px in nav/tab bar.
 
 ## 8. Screen-Level Pattern (adapted from reference's hero + bottom panel idea)

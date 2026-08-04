@@ -35,11 +35,27 @@
 - _(none — Phase 0 closed out)_
 
 ## Up Next (Phase 1 — Authentication & Roles)
-- [ ] Backend: register/login/refresh controllers + bcrypt hashing + JWT issuing
-- [ ] Backend: wire authMiddleware + roleMiddleware into protected routes
-- [ ] Web: real LoginScreen UI (per design.md components), wire to lib/services/auth.ts
-- [ ] Web: decide on token storage strategy — localStorage vs httpOnly cookie (see Known
-      Issues below) — before wiring lib/services/storage.ts for real
+- [x] Backend: register/login/refresh controllers + bcrypt hashing + JWT issuing —
+      `models/userModel.js`, `validators/authValidators.js`, `utils/tokenUtils.js`,
+      `controllers/authController.js`, `routes/authRoutes.js`. Login takes `role` up
+      front (client picks Admin/Teacher/Student) rather than searching all 3 role
+      tables — cheaper query, and avoids leaking whether an email exists under a
+      different role.
+- [x] Backend: wire authMiddleware + roleMiddleware into protected routes —
+      `/auth/logout` now requires a valid access token via `authMiddleware`
+      (middleware already existed from Phase 0, just needed a route to protect).
+- [x] Web: real LoginScreen UI (per design.md components), wire to lib/services/auth.ts —
+      `routes/login/+page.svelte` (role pills + email/password form, design.md tokens
+      inlined as scoped CSS), `lib/services/auth.ts` (role-aware login/register/refresh/
+      logout calls matching the backend), `lib/stores/auth.ts` (persists session to
+      storage on login, rehydrates via `init()` on app load, wires `configureApiAuth`
+      so every request carries the access token and a 401 logs the user out).
+      `+layout.svelte` now awaits `authUser.init()` before deciding redirects, so a page
+      refresh doesn't bounce a logged-in user back to `/login`.
+- [x] Web: decide on token storage strategy — kept `localStorage` for the Phase 1 MVP
+      (see `lib/services/storage.ts` — flagged as an XSS-risk tradeoff, revisit if the
+      app ever needs stronger session security; httpOnly cookies would need backend
+      changes too, so deferred rather than blocking Phase 1).
 - [ ] Web: `npm install && npm run dev` to confirm the Phase 0 routing shell boots
 
 ## Decisions Log
@@ -69,7 +85,8 @@ rules.md          → what to do / avoid while coding
 phases.md         → build order, phase by phase
 design.md         → colors, typography, UI system
 memory.md         → this file — current progress state
-backend/          → Express API (Phase 0 scaffold, verified running)
+backend/          → Express API (Phase 0 scaffold verified; Phase 1 auth: register/
+                    login/refresh/logout live under models/controllers/validators/utils)
 web/              → SvelteKit + TypeScript app (Phase 0 skeleton, replaces old mobile/)
 database/         → attendance.sql (base schema)
 ```

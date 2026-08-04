@@ -7,6 +7,14 @@
 
 import { browser } from '$app/environment';
 
+// Shared key names so auth.ts / stores/auth.ts don't hardcode strings in
+// multiple places.
+export const STORAGE_KEYS = {
+  ACCESS_TOKEN: 'attendance_access_token',
+  REFRESH_TOKEN: 'attendance_refresh_token',
+  USER: 'attendance_user'
+} as const;
+
 export async function setToken(key: string, value: string) {
   if (!browser) return;
   localStorage.setItem(key, value);
