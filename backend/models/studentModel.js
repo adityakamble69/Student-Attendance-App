@@ -1,5 +1,5 @@
 // models/studentModel.js
-// Phase 2 — Admin Core: Student CRUD.
+// Phase 2 + Phase 4: Student CRUD, Timetable, Attendance Analytics & History.
 
 const { pool } = require('../config/db');
 
@@ -51,7 +51,6 @@ async function create({ rollNo, name, email, passwordHash, phone, department, se
   return getById(result.insertId);
 }
 
-// `fields` uses DB column names directly — controller translates camelCase.
 async function update(id, fields) {
   const allowedColumns = [
     'roll_no', 'name', 'email', 'phone', 'department', 'semester', 'section', 'password_hash',
@@ -74,11 +73,6 @@ async function update(id, fields) {
 }
 
 async function remove(id) {
-  // students has three CASCADE children: class_enrollments, attendance,
-  // leave_requests. Deleting a student with real attendance history would
-  // silently erase that audit trail (rules.md §3: every write is meant to
-  // be auditable). Block it — admin should remove enrollments going
-  // forward instead of deleting a student who has attendance on record.
   const [attRows] = await pool.query(
     `SELECT COUNT(*) AS count FROM attendance WHERE student_id = ?`,
     [id]
@@ -101,4 +95,183 @@ async function countAll() {
   return rows[0].count;
 }
 
-module.exports = { getAll, getById, findByEmail, create, update, remove, countAll };
+// Phase 4: Student Timetable, Stats & History
+
+async function getStudentTimetable(studentId, { day } = {}) {
+  const student = await getById(studentId);
+  if (!student) return [];
+
+  let query = `
+    SELECT DISTINCT c.class_id, c.subject_id, c.teacher_id, c.room, c.day,
+           c.start_time, c.end_time, c.section,
+           s.subject_name, s.semester, s.department,
+           t.name AS teacher_name
+    FROM classes c
+    JOIN subjects s ON s.subject_id = c.subject_id
+    JOIN teachers t ON t.teacher_id = c.teacher_id
+    WHERE (
+      c.class_id IN (SELECT class_id FROM class_enrollments WHERE student_id = ?)
+      OR (
+        (c.section = ? OR c.section IS NULL)
+        AND (s.semester = ? OR s.semester IS NULL)
+      )
+    )
+  `;
+  const params = [studentId, student.section, student.semester];
+
+  if (day) {
+    query += ` AND c.day = ?`;
+    params.push(day);
+  }
+
+  query += ` ORDER BY c.day, c.start_time ASC`;
+
+  const [rows] = await pool.query(query, params);
+  return rows;
+}
+
+async function getStudentStats(studentId) {
+  const student = await getById(studentId);
+  if (!student) return null;
+
+  // 1. Overall stats
+  const [overallRows] = await pool.query(
+    `SELECT
+       COUNT(*) AS total_marked,
+       SUM(CASE WHEN status = 'Present' THEN 1 ELSE 0 END) AS present_count,
+       SUM(CASE WHEN status = 'Absent' THEN 1 ELSE 0 END) AS absent_count,
+       SUM(CASE WHEN status = 'Late' THEN 1 ELSE 0 END) AS late_count
+     FROM attendance
+     WHERE student_id = ?`,
+    [studentId]
+  );
+
+  const totalMarked = Number(overallRows[0]?.total_marked || 0);
+  const presentCount = Number(overallRows[0]?.present_count || 0);
+  const absentCount = Number(overallRows[0]?.absent_count || 0);
+  const lateCount = Number(overallRows[0]?.late_count || 0);
+  const overallPercentage =
+    totalMarked > 0 ? Math.round((presentCount / totalMarked) * 100) : 0;
+
+  // 2. Subject-wise breakdown
+  const [subjectRows] = await pool.query(
+    `SELECT
+       s.subject_id,
+       s.subject_name,
+       t.name AS teacher_name,
+       COUNT(a.attendance_id) AS total_sessions,
+       SUM(CASE WHEN a.status = 'Present' THEN 1 ELSE 0 END) AS present_count,
+       SUM(CASE WHEN a.status = 'Absent' THEN 1 ELSE 0 END) AS absent_count,
+       SUM(CASE WHEN a.status = 'Late' THEN 1 ELSE 0 END) AS late_count
+     FROM classes c
+     JOIN subjects s ON s.subject_id = c.subject_id
+     LEFT JOIN teachers t ON t.teacher_id = c.teacher_id
+     LEFT JOIN attendance a ON a.class_id = c.class_id AND a.student_id = ?
+     WHERE (
+       c.class_id IN (SELECT class_id FROM class_enrollments WHERE student_id = ?)
+       OR (c.section = ? AND (s.semester = ? OR s.semester IS NULL))
+     )
+     GROUP BY s.subject_id, s.subject_name, t.name`,
+    [studentId, studentId, student.section, student.semester]
+  );
+
+  const subjectBreakdown = subjectRows.map((r) => {
+    const total = Number(r.total_sessions || 0);
+    const pres = Number(r.present_count || 0);
+    return {
+      subject_id: r.subject_id,
+      subject_name: r.subject_name,
+      teacher_name: r.teacher_name,
+      total_sessions: total,
+      present_count: pres,
+      absent_count: Number(r.absent_count || 0),
+      late_count: Number(r.late_count || 0),
+      percentage: total > 0 ? Math.round((pres / total) * 100) : 0,
+    };
+  });
+
+  return {
+    student,
+    overallPercentage,
+    totalMarked,
+    presentCount,
+    absentCount,
+    lateCount,
+    subjectBreakdown,
+  };
+}
+
+async function getStudentHistory(studentId, { subjectId, fromDate, toDate, page = 1, limit = 20 } = {}) {
+  const offset = (Number(page) - 1) * Number(limit);
+  let where = `WHERE a.student_id = ?`;
+  const params = [studentId];
+
+  if (subjectId) {
+    where += ` AND c.subject_id = ?`;
+    params.push(Number(subjectId));
+  }
+  if (fromDate) {
+    where += ` AND a.date >= ?`;
+    params.push(fromDate);
+  }
+  if (toDate) {
+    where += ` AND a.date <= ?`;
+    params.push(toDate);
+  }
+
+  const query = `
+    SELECT a.attendance_id, a.class_id, a.date, a.status, a.method, a.marked_at,
+           s.subject_name, t.name AS teacher_name, c.room, c.section, c.start_time, c.end_time
+    FROM attendance a
+    JOIN classes c ON c.class_id = a.class_id
+    JOIN subjects s ON s.subject_id = c.subject_id
+    JOIN teachers t ON t.teacher_id = c.teacher_id
+    ${where}
+    ORDER BY a.date DESC, a.marked_at DESC
+    LIMIT ? OFFSET ?
+  `;
+
+  params.push(Number(limit), offset);
+
+  const [rows] = await pool.query(query, params);
+
+  const countParams = [studentId];
+  let countWhere = `WHERE a.student_id = ?`;
+  if (subjectId) {
+    countWhere += ` AND c.subject_id = ?`;
+    countParams.push(Number(subjectId));
+  }
+  if (fromDate) {
+    countWhere += ` AND a.date >= ?`;
+    countParams.push(fromDate);
+  }
+  if (toDate) {
+    countWhere += ` AND a.date <= ?`;
+    countParams.push(toDate);
+  }
+
+  const [countRows] = await pool.query(
+    `SELECT COUNT(*) AS total FROM attendance a JOIN classes c ON c.class_id = a.class_id ${countWhere}`,
+    countParams
+  );
+
+  return {
+    records: rows,
+    total: countRows[0]?.total || 0,
+    page: Number(page),
+    limit: Number(limit),
+  };
+}
+
+module.exports = {
+  getAll,
+  getById,
+  findByEmail,
+  create,
+  update,
+  remove,
+  countAll,
+  getStudentTimetable,
+  getStudentStats,
+  getStudentHistory,
+};

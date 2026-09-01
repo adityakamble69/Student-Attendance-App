@@ -1,13 +1,24 @@
 // routes/notificationRoutes.js
-// Placeholder — endpoints implemented in the phase that owns this domain
-// (see phases.md). Wired into server.js now so the route tree is real
-// from Phase 0, even before handlers exist.
+// Phase 8 — Notifications & Broadcasts Routes.
 
 const express = require('express');
 const router = express.Router();
 
-router.get('/ping', (req, res) => {
-  res.json({ success: true, data: 'notificationRoutes alive — handlers added in a later phase' });
-});
+const notificationController = require('../controllers/notificationController');
+const authMiddleware = require('../middleware/authMiddleware');
+const roleMiddleware = require('../middleware/roleMiddleware');
+const validate = require('../middleware/validate');
+const { broadcastNotificationSchema } = require('../validators/notificationValidators');
+
+router.use(authMiddleware);
+
+router.get('/my', notificationController.getMyNotifications);
+router.patch('/:id/read', notificationController.markRead);
+router.post(
+  '/broadcast',
+  roleMiddleware(['admin']),
+  validate(broadcastNotificationSchema),
+  notificationController.sendBroadcast
+);
 
 module.exports = router;

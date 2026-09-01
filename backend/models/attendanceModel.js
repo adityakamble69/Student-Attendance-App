@@ -258,10 +258,123 @@ async function isClassTaughtByTeacher(classId, teacherId) {
   return rows.length > 0;
 }
 
+/**
+ * Mark attendance for a single student (used by QR, OTP, GPS, Smart methods).
+ */
+async function markSingleStudent({
+  studentId,
+  classId,
+  date,
+  status = 'Present',
+  markedBy,
+  method = 'Manual',
+}) {
+  const query = `
+    INSERT INTO attendance (student_id, class_id, date, status, marked_by, method)
+    VALUES (?, ?, ?, ?, ?, ?)
+    ON DUPLICATE KEY UPDATE
+      status = VALUES(status),
+      marked_by = VALUES(marked_by),
+      method = VALUES(method),
+      marked_at = CURRENT_TIMESTAMP
+  `;
+
+  const [result] = await pool.query(query, [
+    studentId,
+    classId,
+    date,
+    status,
+    String(markedBy),
+    method,
+  ]);
+
+  return {
+    success: true,
+    affectedRows: result.affectedRows,
+    studentId,
+    classId,
+    date,
+    status,
+    method,
+  };
+}
+
+/**
+ * Check if attendance has already been marked for a student in a class on a date.
+ */
+async function checkIfAlreadyMarked(studentId, classId, date) {
+  const [rows] = await pool.query(
+    `SELECT attendance_id, status, method, marked_at
+     FROM attendance
+     WHERE student_id = ? AND class_id = ? AND date = ?
+     LIMIT 1`,
+    [studentId, classId, date]
+  );
+  return rows[0] || null;
+}
+
+/**
+ * Fetch flat attendance rows for class export report.
+ */
+async function getExportRecordsForClass(classId, { fromDate, toDate } = {}) {
+  let where = `WHERE a.class_id = ?`;
+  const params = [classId];
+
+  if (fromDate) {
+    where += ` AND a.date >= ?`;
+    params.push(fromDate);
+  }
+  if (toDate) {
+    where += ` AND a.date <= ?`;
+    params.push(toDate);
+  }
+
+  const query = `
+    SELECT a.date, s.roll_no, s.name, s.email, a.status, a.method, a.marked_at
+    FROM attendance a
+    JOIN students s ON s.student_id = a.student_id
+    ${where}
+    ORDER BY a.date DESC, s.roll_no ASC
+  `;
+
+  const [rows] = await pool.query(query, params);
+  return rows;
+}
+
+/**
+ * Fetch institute-wide summary for admin reports.
+ */
+async function getInstituteSummaryReport() {
+  const query = `
+    SELECT
+      s.subject_name,
+      t.name AS teacher_name,
+      c.section,
+      COUNT(DISTINCT a.date) AS total_sessions,
+      SUM(CASE WHEN a.status = 'Present' THEN 1 ELSE 0 END) AS total_present,
+      SUM(CASE WHEN a.status = 'Absent' THEN 1 ELSE 0 END) AS total_absent,
+      SUM(CASE WHEN a.status = 'Late' THEN 1 ELSE 0 END) AS total_late,
+      ROUND((SUM(CASE WHEN a.status = 'Present' THEN 1 ELSE 0 END) / NULLIF(COUNT(a.attendance_id), 0)) * 100) AS attendance_percentage
+    FROM classes c
+    JOIN subjects s ON s.subject_id = c.subject_id
+    JOIN teachers t ON t.teacher_id = c.teacher_id
+    LEFT JOIN attendance a ON a.class_id = c.class_id
+    GROUP BY c.class_id, s.subject_name, t.name, c.section
+    ORDER BY s.subject_name ASC
+  `;
+
+  const [rows] = await pool.query(query);
+  return rows;
+}
+
 module.exports = {
   markBatch,
   getByClassAndDate,
   getHistoryByClass,
   getTeacherSummary,
   isClassTaughtByTeacher,
+  markSingleStudent,
+  checkIfAlreadyMarked,
+  getExportRecordsForClass,
+  getInstituteSummaryReport,
 };

@@ -1,4 +1,4 @@
-// lib/services/attendance.ts — Phase 3: Teacher Attendance API endpoints.
+// lib/services/attendance.ts — Phase 3 (Teacher Manual) + Phase 5 (Smart QR/OTP/GPS)
 import { api } from './api';
 
 export type AttendanceStatus = 'Present' | 'Absent' | 'Late';
@@ -100,6 +100,28 @@ export interface TeacherDashboardSummary {
   classes: TeacherClassOverview[];
 }
 
+export interface QrSessionData {
+  classId: number;
+  teacherId: number;
+  date: string;
+  token: string;
+  expiresAt: number;
+  nextRotationAt: number;
+  rotationSeconds: number;
+  active?: boolean;
+}
+
+export interface OtpSessionData {
+  classId: number;
+  teacherId: number;
+  date: string;
+  code: string;
+  expiresAt: number;
+  ttlSeconds: number;
+  remainingSeconds?: number;
+  active?: boolean;
+}
+
 /**
  * Mark or update batch attendance for a class.
  */
@@ -116,9 +138,6 @@ export async function markAttendanceManual(
   return data.data;
 }
 
-/**
- * Get enrolled students and marked attendance status for a class on a specific date.
- */
 export async function getClassAttendance(
   classId: number,
   date?: string
@@ -129,9 +148,6 @@ export async function getClassAttendance(
   return data.data;
 }
 
-/**
- * Get date-wise attendance history logs for a class.
- */
 export async function getAttendanceHistory(
   classId: number,
   params?: { fromDate?: string; toDate?: string; page?: number; limit?: number }
@@ -142,9 +158,6 @@ export async function getAttendanceHistory(
   return data.data;
 }
 
-/**
- * Get teacher dashboard stats and today's classes overview.
- */
 export async function getTeacherDashboardSummary(
   day?: string,
   date?: string
@@ -152,5 +165,62 @@ export async function getTeacherDashboardSummary(
   const { data } = await api.get('/attendance/teacher-summary', {
     params: { day, date },
   });
+  return data.data;
+}
+
+// Phase 5: QR Code Attendance Methods
+export async function startQrSession(classId: number, date?: string): Promise<QrSessionData> {
+  const { data } = await api.post('/attendance/qr/start', { classId, date });
+  return data.data;
+}
+
+export async function getActiveQrSession(classId: number): Promise<QrSessionData> {
+  const { data } = await api.get(`/attendance/qr/active/${classId}`);
+  return data.data;
+}
+
+export async function rotateQrSession(classId: number): Promise<QrSessionData> {
+  const { data } = await api.post(`/attendance/qr/rotate/${classId}`);
+  return data.data;
+}
+
+export async function scanQrAttendance(input: {
+  classId: number;
+  token: string;
+  lat?: number;
+  lng?: number;
+}): Promise<{ message: string; status: string; date: string }> {
+  const { data } = await api.post('/attendance/qr/scan', input);
+  return data.data;
+}
+
+// Phase 5: OTP Attendance Methods
+export async function generateOtpSession(classId: number, date?: string): Promise<OtpSessionData> {
+  const { data } = await api.post('/attendance/otp/generate', { classId, date });
+  return data.data;
+}
+
+export async function getActiveOtpSession(classId: number): Promise<OtpSessionData> {
+  const { data } = await api.get(`/attendance/otp/active/${classId}`);
+  return data.data;
+}
+
+export async function submitOtpAttendance(input: {
+  classId: number;
+  code: string;
+  lat?: number;
+  lng?: number;
+}): Promise<{ message: string; status: string; date: string }> {
+  const { data } = await api.post('/attendance/otp/submit', input);
+  return data.data;
+}
+
+// Phase 5: GPS Attendance Method
+export async function markGpsAttendance(input: {
+  classId: number;
+  lat: number;
+  lng: number;
+}): Promise<{ message: string; distanceMeters: number }> {
+  const { data } = await api.post('/attendance/gps/mark', input);
   return data.data;
 }

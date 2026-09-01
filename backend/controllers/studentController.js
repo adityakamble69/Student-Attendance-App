@@ -1,11 +1,11 @@
 // controllers/studentController.js
-// Phase 2 — Admin Core: Student CRUD. All routes are admin-only
-// (enforced in routes/studentRoutes.js via roleMiddleware(['admin'])).
+// Phase 2 + Phase 4: Student CRUD & Student Self-Service (Timetable, Stats, History).
 
 const bcrypt = require('bcrypt');
 const studentModel = require('../models/studentModel');
 
 const SALT_ROUNDS = 10;
+const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 async function list(req, res, next) {
   try {
@@ -96,4 +96,61 @@ async function remove(req, res, next) {
   }
 }
 
-module.exports = { list, getOne, create, update, remove };
+// Phase 4: Student Self-Service Endpoints
+
+async function getMyTimetable(req, res, next) {
+  try {
+    const studentId = req.user.id;
+    const now = new Date();
+    const currentDay = DAYS[now.getDay()];
+    const day = req.query.day || (currentDay === 'Sun' ? 'Mon' : currentDay);
+
+    const timetable = await studentModel.getStudentTimetable(studentId, { day });
+    res.json({ success: true, data: { timetable, day } });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function getMyStats(req, res, next) {
+  try {
+    const studentId = req.user.id;
+    const stats = await studentModel.getStudentStats(studentId);
+    if (!stats) {
+      return res.status(404).json({ success: false, error: 'Student profile not found.' });
+    }
+    res.json({ success: true, data: stats });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function getMyHistory(req, res, next) {
+  try {
+    const studentId = req.user.id;
+    const { subjectId, fromDate, toDate, page, limit } = req.query;
+
+    const history = await studentModel.getStudentHistory(studentId, {
+      subjectId,
+      fromDate,
+      toDate,
+      page,
+      limit,
+    });
+
+    res.json({ success: true, data: history });
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = {
+  list,
+  getOne,
+  create,
+  update,
+  remove,
+  getMyTimetable,
+  getMyStats,
+  getMyHistory,
+};

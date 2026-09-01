@@ -1,24 +1,17 @@
-<!--
-  routes/+layout.svelte
-  Replaces the old App.tsx (ThemeProvider > AuthProvider > RootNavigator).
-  SvelteKit's file-based routing replaces AuthStack/AdminStack/TeacherStack/
-  StudentStack — see routes/login, routes/admin, routes/teacher, routes/student.
-  This layout guards routes based on the auth store, the same job
-  RootNavigator used to do by picking which stack to render. It also
-  rehydrates the session from storage on first load via authUser.init().
--->
+<!-- routes/+layout.svelte — Root layout with role guard & universal navigation header -->
 <script lang="ts">
   import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
   import { page } from '$app/stores';
   import { authUser } from '$lib/stores/auth';
+  import Navbar from '$lib/components/Navbar.svelte';
 
   let ready = false;
 
   const roleHome: Record<string, string> = {
     admin: '/admin',
     teacher: '/teacher',
-    student: '/student'
+    student: '/student',
   };
 
   onMount(async () => {
@@ -37,5 +30,24 @@
 </script>
 
 {#if ready}
-  <slot />
+  {#if $authUser && $page.url.pathname !== '/login'}
+    <Navbar />
+  {/if}
+  <main>
+    <slot />
+  </main>
 {/if}
+
+<style>
+  :global(body) {
+    margin: 0;
+    padding: 0;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background-color: #ffffff;
+    color: #191919;
+    -webkit-font-smoothing: antialiased;
+  }
+  main {
+    min-height: calc(100vh - 58px);
+  }
+</style>

@@ -57,6 +57,12 @@
       <button class="nav-btn" on:click={() => goto('/teacher/classes')} type="button">
         My Classes
       </button>
+      <button class="nav-btn" on:click={() => goto('/teacher/leave')} type="button">
+        Leave
+      </button>
+      <button class="nav-btn" on:click={() => goto('/teacher/reports')} type="button">
+        Reports
+      </button>
     </div>
   </div>
 
@@ -166,9 +172,18 @@
                 {/if}
               </div>
 
-              <span class="action-hint">
-                {item.is_marked_today ? 'View / Edit' : 'Mark Attendance'} →
-              </span>
+              <div class="card-actions">
+                <button
+                  class="smart-action-btn"
+                  type="button"
+                  on:click|stopPropagation={() => goto(`/teacher/smart/${item.class_id}`)}
+                >
+                  ⚡ Smart Station (QR/OTP)
+                </button>
+                <span class="action-hint">
+                  {item.is_marked_today ? 'View / Edit' : 'Manual Mark'} →
+                </span>
+              </div>
             </div>
           </button>
         {/each}
@@ -392,6 +407,27 @@
     display: flex;
     align-items: center;
     gap: 5px;
+  }
+  .card-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .smart-action-btn {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 10px;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 9999px;
+    color: #191919;
+    cursor: pointer;
+    transition: all 150ms;
+  }
+  .smart-action-btn:hover {
+    background: #191919;
+    color: #ffffff;
+    border-color: #191919;
   }
   .action-hint {
     font-size: 12px;

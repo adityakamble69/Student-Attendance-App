@@ -1,13 +1,24 @@
 // routes/leaveRoutes.js
-// Placeholder — endpoints implemented in the phase that owns this domain
-// (see phases.md). Wired into server.js now so the route tree is real
-// from Phase 0, even before handlers exist.
+// Phase 7 — Leave Management Routes.
 
 const express = require('express');
 const router = express.Router();
 
-router.get('/ping', (req, res) => {
-  res.json({ success: true, data: 'leaveRoutes alive — handlers added in a later phase' });
-});
+const leaveController = require('../controllers/leaveController');
+const authMiddleware = require('../middleware/authMiddleware');
+const roleMiddleware = require('../middleware/roleMiddleware');
+const validate = require('../middleware/validate');
+const { applyLeaveSchema, reviewLeaveSchema } = require('../validators/leaveValidators');
+
+router.use(authMiddleware);
+
+// Student endpoints
+router.post('/apply', roleMiddleware(['student']), validate(applyLeaveSchema), leaveController.apply);
+router.get('/my', roleMiddleware(['student']), leaveController.getMyLeaves);
+
+// Teacher & Admin endpoints
+router.get('/', roleMiddleware(['teacher', 'admin']), leaveController.listAll);
+router.get('/:id', roleMiddleware(['teacher', 'admin', 'student']), leaveController.getOne);
+router.patch('/:id/review', roleMiddleware(['teacher', 'admin']), validate(reviewLeaveSchema), leaveController.review);
 
 module.exports = router;
