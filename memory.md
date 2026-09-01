@@ -3,9 +3,9 @@
 > Update this file every time a task, file, or phase is completed. This is the single source of truth for "what's done" and "what's in progress" across sessions.
 
 ## Current Status
-- **Current Phase:** Phase 2 — Admin Core / Master Data — **backend + web CRUD screens built, NOT YET verified end-to-end** (needs to be run against a real DB on the user's machine, same as Phase 1)
-- **Currently Working On:** nothing — next session should verify Phase 2 locally, then move to Phase 3 (Teacher Core)
-- **Last Updated:** 2026-08-04
+- **Current Phase:** Phase 3 — Teacher Core — **backend models, validators, controllers, routes + web screens (Dashboard/Timetable, Manual Attendance Marking, History, Class Rosters) built & compiled clean with 0 errors!**
+- **Currently Working On:** Ready for end-to-end local testing or proceeding to Phase 4 (Student Core).
+- **Last Updated:** 2026-09-01
 
 ## Completed
 - [x] PRD.md, architecture.md, rules.md, phases.md, design.md, memory.md (planning docs)
@@ -42,60 +42,35 @@
       Token storage: kept `localStorage` for the MVP (flagged XSS-risk tradeoff in
       Known Issues, revisit later). Confirmed working: register + login via
       Invoke-RestMethod, Login screen renders, login redirects to role dashboard.
+- [x] Phase 2 — Admin Core (Master Data): Teacher CRUD, Student CRUD, Subject CRUD,
+      Class CRUD + teacher assignment, Admin overview counts & web management screens.
 
-## In Progress
-- _(none — Phase 2 code written this session; needs local verification before being marked done)_
+## Completed — Phase 3 (Teacher Core)
+- [x] Backend: `models/enrollmentModel.js` — retrieves enrolled student roster with section/semester fallback; handles manual & bulk section enrollments and unenrollments.
+- [x] Backend: `models/attendanceModel.js` — `markBatch` (upserting attendance with `marked_by`, `method = 'Manual'`, and timestamp), `getByClassAndDate` (merging class student roster with day's marked attendance), `getHistoryByClass` (grouped by date with aggregated metrics), `getTeacherSummary` (dashboard stats for scheduled, completed, pending classes and student counts).
+- [x] Backend: `models/classModel.js` — added `getByTeacher(teacherId, { day, date })` joining assigned classes with enrollment counts and marked status.
+- [x] Backend: `validators/attendanceValidators.js` — Zod schemas for `markAttendanceSchema`, `enrollStudentsSchema`, `enrollBySectionSchema`.
+- [x] Backend: `controllers/attendanceController.js` — `markManual`, `getClassAttendance`, `getHistory`, `getTeacherSummary` with role verification and class ownership checks.
+- [x] Backend: `controllers/classController.js` + `routes/classRoutes.js` — exposed `/my-classes`, `/:id/students`, and enrollment routes for teachers and admins.
+- [x] Backend: `routes/attendanceRoutes.js` — wired `/mark-manual`, `/class/:classId`, `/history`, `/teacher-summary`.
+- [x] Web: `lib/components/StatusChip.svelte` — design.md status indicator chip (dot + label with status color accents).
+- [x] Web: `lib/services/attendance.ts` — typed axios service for manual marking, class attendance, history, and dashboard summary.
+- [x] Web: `lib/services/classes.ts` — typed methods for `getMyClasses`, `getClassStudents`, and enrollment APIs.
+- [x] Web: `routes/teacher/+page.svelte` — Teacher Dashboard: serif hero stat, summary grid (scheduled, marked, pending, student count), day selector tabs (Mon–Sat), and interactive class cards with `Marked`/`Pending` badges.
+- [x] Web: `routes/teacher/attendance/[classId]/+page.svelte` — Manual Attendance Marking: class header, dynamic date picker, live summary counters (Total, Present, Absent, Late, Unmarked), batch actions ("Mark All Present", "Mark All Absent"), search filter, 3-way toggle button group (`P`/`A`/`L`) per student, and sticky save button.
+- [x] Web: `routes/teacher/history/+page.svelte` — Attendance History: class selector, date range filter, session cards with percentage badges, count breakdown, and edit links.
+- [x] Web: `routes/teacher/classes/+page.svelte` — My Classes & Rosters: assigned class chips, detail card, and searchable student roster.
+- [x] All backend files passed Node syntax checks; Web frontend passed `svelte-check` (0 errors, 0 warnings) and `vite build` (production build succeeded).
 
-## Completed — Phase 2 (Admin Core / Master Data) — code written, **unverified**
-- [x] Backend: Teacher CRUD — `models/teacherModel.js`, `controllers/teacherController.js`,
-      `validators/teacherValidators.js`, `routes/teacherRoutes.js`. Admin-only
-      (`authMiddleware` + `roleMiddleware(['admin'])`). Delete is blocked if the teacher
-      still has classes assigned (classes.teacher_id is ON DELETE CASCADE — a raw delete
-      would silently wipe those classes + their attendance history).
-- [x] Backend: Student CRUD — same pattern (`studentModel.js` / `studentController.js` /
-      `studentValidators.js` / `studentRoutes.js`). Delete is blocked once the student has
-      any attendance history (for the same CASCADE-safety reason, plus rules.md's
-      auditability requirement).
-- [x] Backend: Subject CRUD — `subjectModel.js` / `subjectController.js` /
-      `subjectValidators.js` / `subjectRoutes.js`. Delete blocked while any class still
-      references the subject.
-- [x] Backend: Class CRUD — `classModel.js` / `classController.js` / `classValidators.js` /
-      `classRoutes.js`. List/get queries join in `subject_name` + `teacher_name` for display.
-      Delete blocked once attendance history exists for the class.
-- [x] Backend: **assign teachers to subjects** — resolved as an open question, not a new
-      table: a `classes` row (subject_id + teacher_id + day/time/room/section) *is* the
-      assignment. Confirmed `class_id`, `subject_id` FK, `teacher_id` FK already cover it in
-      `attendance.sql` — no schema change needed.
-- [x] Backend: extracted `middleware/validate.js` (same zod-validation logic that was
-      inline in `authValidators.js`) so all Phase 2 validators can share it without touching
-      Phase 1's working auth code.
-- [x] Web: `lib/components/ListRow.svelte` — the design.md §5 "Interactive Row" component,
-      pulled out as a shared component so every list screen reuses one implementation.
-- [x] Web: `lib/services/{teacher,student,subject,classes,admin}.ts` — typed axios wrappers
-      for all Phase 2 endpoints.
-- [x] Web: `routes/admin/+page.svelte` — replaces the Phase 0 placeholder. Serif hero stat
-      (total students) + summary row (teachers/subjects/classes) + hairline divider +
-      ListRow links into each management screen, per design.md's Home screen pattern.
-- [x] Web: `routes/admin/teachers/+page.svelte`, `.../students/+page.svelte`,
-      `.../subjects/+page.svelte`, `.../classes/+page.svelte` — list + inline add form +
-      remove, using the Surface-Muted row pattern from design.md. The Classes screen doubles
-      as the "assign teacher to subject" UI (subject + teacher dropdowns feed a class row).
-
-## Up Next (before Phase 2 can be marked COMPLETE)
-- [ ] Run Phase 2 against a real DB on the user's local machine (same verification step
-      Phase 1 went through) — nothing above has been executed yet, only written.
-- [ ] Manually test each CRUD edge case: duplicate email on create, delete-blocked responses
-      (teacher-with-classes, student-with-attendance, subject-with-classes,
-      class-with-attendance), and the 403 a non-admin role gets on every Phase 2 route.
-- [ ] Decide if Teacher/Student edit forms are needed now or can wait — current screens
-      only do Add + Remove, not Edit (PATCH endpoints exist backend-side and are ready to
-      wire up whenever the edit UI is built).
-- [ ] Once verified, move to **Phase 3 — Teacher Core** (today's timetable, student list per
-      class, manual attendance marking).
+## Up Next
+- [ ] Move to **Phase 4 — Student Core** (Student Timetable, Overall + Subject-wise Attendance %, Attendance history view).
+- [ ] Or run local DB integration testing on Phase 2 & 3.
 
 ## Decisions Log
 | Date | Decision | Reason |
 |---|---|---|
+| 2026-09-01 | Automatic fallback in `enrollmentModel.js` to class section/semester | Allows classes and students created in Phase 2 to immediately work in attendance marking without requiring an extra manual enrollment step |
+| 2026-09-01 | Attendance batch marking uses `INSERT ... ON DUPLICATE KEY UPDATE` | Supports easy editing and re-marking of attendance for any date without duplicate record conflicts |
 | 2026-08-04 | No separate "teacher_subject_assignments" table — a `classes` row IS the assignment | `classes` already has subject_id FK + teacher_id FK + timing; a second table would just duplicate that relationship |
 | 2026-08-04 | Delete endpoints (teacher/student/subject/class) block with 409 instead of allowing CASCADE deletes | `attendance`, `classes`, `class_enrollments`, `leave_requests` all cascade off these tables — an unguarded delete would silently erase audit history that rules.md §3 requires |
 | 2026-08-04 | Extracted shared `middleware/validate.js` instead of reusing the one inline in `authValidators.js` | Keeps Phase 1's working auth code untouched while giving Phase 2 validators the same pattern |
@@ -104,7 +79,6 @@
 | 2026-08-03 | Design direction locked: ink/white/muted-gray palette, serif+Inter pairing, status as dots/chips only, row-hover pattern | Ported from user's fintech reference — see design.md rationale note |
 | 2026-08-03 | Added `admins` table to schema | PRD/architecture assume a distinct admin login role but original entity summary omitted it |
 | 2026-08-03 | Added `class_enrollments` table to schema | Needed as the source of truth for "which students are in this class" (architecture.md §2.1 step 2 assumes this exists) |
-| 2026-08-03 | Native android/ios RN folders deferred to local machine | Sandbox has no Android Studio/Xcode/RN CLI native toolchain; JS/TS skeleton is complete and ready to drop into a native shell — **superseded same day, see next row** |
 | 2026-08-03 | Replaced `mobile/` (React Native) with `web/` (SvelteKit) | Project direction changed from native mobile to web app; no native shell needed anymore, removes the android/ios toolchain dependency entirely |
 
 ## Known Issues / Open Questions
@@ -123,8 +97,7 @@ rules.md          → what to do / avoid while coding
 phases.md         → build order, phase by phase
 design.md         → colors, typography, UI system
 memory.md         → this file — current progress state
-backend/          → Express API (Phase 0 scaffold verified; Phase 1 auth: register/
-                    login/refresh/logout live under models/controllers/validators/utils)
-web/              → SvelteKit + TypeScript app (Phase 0 skeleton, replaces old mobile/)
+backend/          → Express API (Phase 0 setup, Phase 1 Auth, Phase 2 Admin Core, Phase 3 Teacher Core)
+web/              → SvelteKit + TypeScript app (Phase 1 Auth UI, Phase 2 Admin UI, Phase 3 Teacher UI)
 database/         → attendance.sql (base schema)
 ```

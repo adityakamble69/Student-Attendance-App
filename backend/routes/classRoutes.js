@@ -1,7 +1,5 @@
 // routes/classRoutes.js
-// GET /, GET /:id, POST /, PUT /:id, DELETE /:id — all admin-only for Phase 2.
-// POST / and PUT /:id are also how a teacher gets assigned to a subject
-// (see models/classModel.js header for why there's no separate join table).
+// Phase 2 (Admin CRUD) + Phase 3 (Teacher timetable & Class Student Rosters)
 
 const express = require('express');
 const router = express.Router();
@@ -11,13 +9,41 @@ const authMiddleware = require('../middleware/authMiddleware');
 const roleMiddleware = require('../middleware/roleMiddleware');
 const validate = require('../middleware/validate');
 const { createClassSchema, updateClassSchema } = require('../validators/classValidators');
+const {
+  enrollStudentsSchema,
+  enrollBySectionSchema,
+} = require('../validators/attendanceValidators');
 
-router.use(authMiddleware, roleMiddleware(['admin']));
+router.use(authMiddleware);
 
-router.get('/', classController.list);
-router.get('/:id', classController.getOne);
-router.post('/', validate(createClassSchema), classController.create);
-router.put('/:id', validate(updateClassSchema), classController.update);
-router.delete('/:id', classController.remove);
+// Teacher-accessible endpoints
+router.get('/my-classes', roleMiddleware(['teacher', 'admin']), classController.getMyClasses);
+router.get('/:id/students', roleMiddleware(['teacher', 'admin']), classController.getClassStudents);
+
+// Admin-only management endpoints
+router.get('/', roleMiddleware(['admin']), classController.list);
+router.get('/:id', roleMiddleware(['admin', 'teacher']), classController.getOne);
+router.post('/', roleMiddleware(['admin']), validate(createClassSchema), classController.create);
+router.put('/:id', roleMiddleware(['admin']), validate(updateClassSchema), classController.update);
+router.delete('/:id', roleMiddleware(['admin']), classController.remove);
+
+// Enrollment endpoints
+router.post(
+  '/:id/enroll',
+  roleMiddleware(['admin']),
+  validate(enrollStudentsSchema),
+  classController.enrollStudents
+);
+router.post(
+  '/:id/enroll-section',
+  roleMiddleware(['admin']),
+  validate(enrollBySectionSchema),
+  classController.enrollBySection
+);
+router.delete(
+  '/:id/enroll/:studentId',
+  roleMiddleware(['admin']),
+  classController.unenrollStudent
+);
 
 module.exports = router;

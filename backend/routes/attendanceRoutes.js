@@ -1,13 +1,40 @@
 // routes/attendanceRoutes.js
-// Placeholder — endpoints implemented in the phase that owns this domain
-// (see phases.md). Wired into server.js now so the route tree is real
-// from Phase 0, even before handlers exist.
+// Phase 3 — Teacher Core: Manual Attendance Marking, Querying, History, and Dashboard stats.
 
 const express = require('express');
 const router = express.Router();
 
-router.get('/ping', (req, res) => {
-  res.json({ success: true, data: 'attendanceRoutes alive — handlers added in a later phase' });
-});
+const attendanceController = require('../controllers/attendanceController');
+const authMiddleware = require('../middleware/authMiddleware');
+const roleMiddleware = require('../middleware/roleMiddleware');
+const validate = require('../middleware/validate');
+const { markAttendanceSchema } = require('../validators/attendanceValidators');
+
+router.use(authMiddleware);
+
+router.post(
+  '/mark-manual',
+  roleMiddleware(['teacher', 'admin']),
+  validate(markAttendanceSchema),
+  attendanceController.markManual
+);
+
+router.get(
+  '/class/:classId',
+  roleMiddleware(['teacher', 'admin']),
+  attendanceController.getClassAttendance
+);
+
+router.get(
+  '/history',
+  roleMiddleware(['teacher', 'admin']),
+  attendanceController.getHistory
+);
+
+router.get(
+  '/teacher-summary',
+  roleMiddleware(['teacher', 'admin']),
+  attendanceController.getTeacherSummary
+);
 
 module.exports = router;

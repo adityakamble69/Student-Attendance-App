@@ -1,8 +1,5 @@
 // lib/services/classes.ts
-// A "class" here = subject + teacher + timing slot. Creating/editing one
-// is how an admin assigns a teacher to a subject (see backend
-// models/classModel.js for the reasoning — no separate assignment table).
-
+// A "class" here = subject + teacher + timing slot.
 import { api } from './api';
 
 export type Day = 'Mon' | 'Tue' | 'Wed' | 'Thu' | 'Fri' | 'Sat' | 'Sun';
@@ -18,12 +15,31 @@ export interface ClassItem {
   start_time: string;
   end_time: string;
   section: string | null;
+  enrolled_count?: number;
+  is_marked?: boolean;
 }
 
 export interface ClassListResult {
   classes: ClassItem[];
   page: number;
   limit: number;
+  total: number;
+}
+
+export interface ClassStudentItem {
+  student_id: number;
+  roll_no: string;
+  name: string;
+  email: string;
+  phone: string | null;
+  department: string | null;
+  semester: number | null;
+  section: string | null;
+}
+
+export interface ClassRosterResult {
+  class: ClassItem;
+  students: ClassStudentItem[];
   total: number;
 }
 
@@ -35,6 +51,16 @@ export async function listClasses(page = 1, limit = 20): Promise<ClassListResult
 export async function getClass(id: number): Promise<ClassItem> {
   const { data } = await api.get(`/classes/${id}`);
   return data.data.class;
+}
+
+export async function getMyClasses(params?: { day?: string; date?: string }): Promise<ClassItem[]> {
+  const { data } = await api.get('/classes/my-classes', { params });
+  return data.data.classes;
+}
+
+export async function getClassStudents(id: number): Promise<ClassRosterResult> {
+  const { data } = await api.get(`/classes/${id}/students`);
+  return data.data;
 }
 
 export interface CreateClassInput {
@@ -61,4 +87,19 @@ export async function updateClass(id: number, input: UpdateClassInput): Promise<
 
 export async function deleteClass(id: number): Promise<void> {
   await api.delete(`/classes/${id}`);
+}
+
+export async function enrollStudentsInClass(id: number, studentIds: number[]): Promise<void> {
+  await api.post(`/classes/${id}/enroll`, { studentIds });
+}
+
+export async function enrollBySection(
+  id: number,
+  filter: { semester?: number; section?: string; department?: string }
+): Promise<void> {
+  await api.post(`/classes/${id}/enroll-section`, filter);
+}
+
+export async function unenrollStudent(id: number, studentId: number): Promise<void> {
+  await api.delete(`/classes/${id}/enroll/${studentId}`);
 }

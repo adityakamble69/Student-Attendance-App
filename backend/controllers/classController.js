@@ -1,9 +1,9 @@
 // controllers/classController.js
-// Phase 2 — Admin Core: Classes & Divisions CRUD (also how teachers get
-// assigned to subjects — see models/classModel.js header). Admin-only
-// (enforced in routes/classRoutes.js via roleMiddleware(['admin'])).
+// Phase 2 + Phase 3: Classes & Divisions CRUD, Teacher's My Classes / Timetable,
+// and Student Roster / Enrollment management.
 
 const classModel = require('../models/classModel');
+const enrollmentModel = require('../models/enrollmentModel');
 
 async function list(req, res, next) {
   try {
@@ -66,4 +66,103 @@ async function remove(req, res, next) {
   }
 }
 
-module.exports = { list, getOne, create, update, remove };
+// Phase 3 additions:
+
+async function getMyClasses(req, res, next) {
+  try {
+    const teacherId = req.user.id;
+    const { day, date } = req.query;
+
+    const classes = await classModel.getByTeacher(teacherId, { day, date });
+    res.json({ success: true, data: { classes } });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function getClassStudents(req, res, next) {
+  try {
+    const classId = Number(req.params.id);
+    const classRow = await classModel.getById(classId);
+    if (!classRow) {
+      return res.status(404).json({ success: false, error: 'Class not found.' });
+    }
+
+    if (req.user.role === 'teacher' && classRow.teacher_id !== req.user.id) {
+      return res
+        .status(403)
+        .json({ success: false, error: 'Forbidden: You are not assigned to this class.' });
+    }
+
+    const students = await enrollmentModel.getEnrolledStudents(classId);
+    res.json({
+      success: true,
+      data: {
+        class: classRow,
+        students,
+        total: students.length,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function enrollStudents(req, res, next) {
+  try {
+    const classId = Number(req.params.id);
+    const { studentIds } = req.body;
+
+    const classRow = await classModel.getById(classId);
+    if (!classRow) {
+      return res.status(404).json({ success: false, error: 'Class not found.' });
+    }
+
+    const result = await enrollmentModel.enrollStudents(classId, studentIds);
+    res.json({ success: true, data: { message: 'Students enrolled successfully.', ...result } });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function enrollBySection(req, res, next) {
+  try {
+    const classId = Number(req.params.id);
+    const { semester, section, department } = req.body;
+
+    const classRow = await classModel.getById(classId);
+    if (!classRow) {
+      return res.status(404).json({ success: false, error: 'Class not found.' });
+    }
+
+    const result = await enrollmentModel.enrollBySection(classId, { semester, section, department });
+    res.json({ success: true, data: { message: 'Students enrolled from section.', ...result } });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function unenrollStudent(req, res, next) {
+  try {
+    const classId = Number(req.params.id);
+    const studentId = Number(req.params.studentId);
+
+    await enrollmentModel.unenrollStudent(classId, studentId);
+    res.json({ success: true, data: { message: 'Student removed from class.' } });
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = {
+  list,
+  getOne,
+  create,
+  update,
+  remove,
+  getMyClasses,
+  getClassStudents,
+  enrollStudents,
+  enrollBySection,
+  unenrollStudent,
+};

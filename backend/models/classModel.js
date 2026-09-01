@@ -131,4 +131,43 @@ async function countAll() {
   return rows[0].count;
 }
 
-module.exports = { getAll, getById, create, update, remove, countAll };
+async function getByTeacher(teacherId, { day, date } = {}) {
+  let query = `
+    SELECT c.class_id, c.subject_id, c.teacher_id, c.room, c.day,
+           c.start_time, c.end_time, c.section,
+           s.subject_name, s.semester, s.department,
+           t.name AS teacher_name,
+           (SELECT COUNT(*) FROM class_enrollments ce WHERE ce.class_id = c.class_id) AS enrolled_count
+    FROM classes c
+    JOIN subjects s ON s.subject_id = c.subject_id
+    JOIN teachers t ON t.teacher_id = c.teacher_id
+    WHERE c.teacher_id = ?
+  `;
+  const params = [teacherId];
+
+  if (day) {
+    query += ` AND c.day = ?`;
+    params.push(day);
+  }
+
+  query += ` ORDER BY c.day, c.start_time`;
+
+  const [rows] = await pool.query(query, params);
+
+  if (date && rows.length > 0) {
+    const classIds = rows.map((r) => r.class_id);
+    const [attRows] = await pool.query(
+      `SELECT DISTINCT class_id FROM attendance WHERE class_id IN (?) AND date = ?`,
+      [classIds, date]
+    );
+    const markedSet = new Set(attRows.map((r) => r.class_id));
+    return rows.map((r) => ({
+      ...r,
+      is_marked: markedSet.has(r.class_id),
+    }));
+  }
+
+  return rows;
+}
+
+module.exports = { getAll, getById, create, update, remove, countAll, getByTeacher };
